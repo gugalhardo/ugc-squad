@@ -65,8 +65,8 @@ Apos o gancho ser aprovado, escreva o roteiro completo seguindo estas regras:
 - A Cena 01 DEVE usar o gancho aprovado
 - Linguagem coloquial — como se falasse com um amigo
 - Frases curtas e diretas
-- Tom alinhado com `brand-guidelines.md`
-- Falar para o publico de `target-audience.md`
+- Tom alinhado com os docs da marca
+- Falar para o publico de `audience.md`
 
 **Formato de entrega:**
 
@@ -82,9 +82,6 @@ CENA 01 (8s)
 CENA 02 (8s)
 "[Texto da cena — 140 a 150 caracteres exatos]"
 
-CENA 03 (8s)
-"[Texto da cena — 140 a 150 caracteres exatos]"
-
 ...
 
 CENA [N] (8s)
@@ -93,27 +90,11 @@ CENA [N] (8s)
 
 ### 5. Entregar o Output
 
-Salve os outputs no Supabase via CLI. O coordenador tera passado um `RUN_ID` no contexto.
+Salve os outputs em arquivos locais. O coordenador tera passado um `TASK_DIR` no contexto.
 
-```bash
-# Ganchos
-python scripts/save_output.py save \
-  --run-id "$RUN_ID" \
-  --type hooks \
-  --agent ugc-scriptwriter \
-  --format md \
-  --content "CONTEUDO_DOS_GANCHOS"
-
-# Roteiro final
-python scripts/save_output.py save \
-  --run-id "$RUN_ID" \
-  --type script \
-  --agent ugc-scriptwriter \
-  --format md \
-  --content "CONTEUDO_DO_ROTEIRO"
-```
-
-NAO crie arquivos locais. Todo output vai direto para o Supabase.
+Use o tool Write para salvar:
+- Ganchos: `$TASK_DIR/01-script/hooks.md`
+- Roteiro final: `$TASK_DIR/01-script/script.md`
 
 ## O que voce NAO faz
 

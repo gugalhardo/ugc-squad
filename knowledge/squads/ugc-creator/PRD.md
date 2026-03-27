@@ -2,14 +2,13 @@
 
 ## Proposito
 
-Transformar uma ideia de video UGC em video(s) produzido(s) via IA, com aprovacao humana em cada etapa.
+Transformar uma ideia de video UGC em roteiro + direcao de cena + JSONs VEO3 + copy, com aprovacao humana em cada etapa. O usuario fornece uma foto base do personagem.
 
-## Fluxo
+## Fluxo (Modo Manual)
 
-Roteirista -> Diretor -> Fotografo -> Produtor -> Copywriter
+Roteirista -> Diretor -> Produtor -> Copywriter
 
-**Modo Automatico**: Fluxo completo com geracao de fotos e videos por IA.
-**Modo Manual**: Usuario fornece foto base. Pula Fotografo. Produtor gera apenas JSONs VEO3.
+O usuario fornece a foto base. Nao ha geracao de fotos ou videos via API. O Produtor gera apenas JSONs VEO3.
 
 ## Agentes
 
@@ -17,45 +16,42 @@ Roteirista -> Diretor -> Fotografo -> Produtor -> Copywriter
 |---|-------------------|-------|-------|-------|----------|
 | 1 | `ugc-scriptwriter` | Script puro: o que sera falado/escrito | Read, Write | opus | 20 |
 | 2 | `ugc-director` | Direcao de cena (atuacao, expressao, gesto, tom) | Read, Write | sonnet | 20 |
-| 3 | `ugc-photographer` | Gera imagem por cena via API Gemini | Read, Bash, Write | sonnet | 30 |
-| 4 | `ugc-producer` | Gera video por cena via API Gemini (VEO3) | Read, Write, Bash | sonnet | 50 |
-| 5 | `util-copywriter` | Legenda + ad copy para Meta Ads | Read, Write | opus | 25 |
+| 3 | `ugc-producer` | Monta JSONs VEO3 (sem geracao de video) | Read, Write | sonnet | 50 |
+| 4 | `util-copywriter` | Legenda + ad copy para Meta Ads | Read, Write | opus | 25 |
 
 Coordenador: `ugc-coordinator` (sonnet, 100 turns)
 
 ## Input do Usuario
 
-- **Marca/produto** (obrigatorio) — ex: "tailor"
+- **Marca/produto** (obrigatorio) — ex: "minha-marca"
 - **Nome do anuncio** (obrigatorio) — slug para nome da pasta
 - **Descricao da ideia** (obrigatorio)
 - **Dor/problema ou angulo** (obrigatorio)
-- Tom de voz desejado
-- Referencia visual / foto base (opcional — se enviada, ativa modo manual)
+- **Foto base do personagem** (obrigatorio)
+- Tom de voz desejado (opcional)
 
 ## Contexto por Agente
 
 | Agente | Recebe |
 |--------|--------|
 | Roteirista | Input original (ideia, dor, tom, ref visual) |
-| Diretor | Input original + roteiro aprovado |
-| Fotografo | Input original + roteiro visual do diretor (+ ref visual) |
-| Produtor | Por cena: script + direcao visual + imagem |
+| Diretor | Input original + roteiro aprovado + foto base |
+| Produtor | Script completo + direcao de cena + foto base |
 | Copywriter | Input original + roteiro + briefing do coordenador |
 
-## Convencao de Output
+## Convencao de Output (Local)
 
 ```
-outputs/{brand}/ugc_{DD-MM-AA}_{slug}/
+outputs/{brand}/ugc_{DD-MM-AA}_AD00X-{slug}/
 ├── 01-script/        # hooks.md + script.md
-├── 02-direction/     # visual-direction.md
-├── 03-photography/   # scene-01.png ... scene-08.png
-├── 04-production/    # JSONs VEO3 + videos .mp4
-└── 05-copy/          # legenda.md + ad-copy.md
+├── 02-direction/     # direction.md
+├── 03-photography/   # base-photo.{ext} (foto do usuario)
+├── 04-production/    # scene-01.json ... scene-08.json (JSONs VEO3)
+└── 05-copy/          # caption.md + ad-copy.md
 ```
 
 ## Knowledge Docs
 
-- **Global**: `knowledge/global/*`
 - **Squad**: `knowledge/squads/ugc-creator/*` (ugc-best-practices, video-formats, reference-styles)
 - **Agente**: `knowledge/agents/{agente}/*`
 - **Brand**: `knowledge/brands/{marca}/*`
@@ -68,27 +64,17 @@ outputs/{brand}/ugc_{DD-MM-AA}_{slug}/
 - Output: hooks.md + script.md
 
 ### Diretor
-- Cria direcao visual em 2 blocos:
-  - Bloco Geral: personagem, ambiente, iluminacao, mood
-  - Bloco por Cena: angulo, expressao, movimento, acao, tom de voz, camera
-- Output: visual-direction.md
-
-### Fotografo
-- Etapa 1: Gera imagem da cena 01 -> humano aprova individualmente
-- Etapa 2: Usa cena 01 como referencia, gera cenas 02-08 -> humano aprova lote
-- Chama: `python scripts/generate_image.py`
+- Analisa foto base do usuario
+- Cria direcao de cena em 2 blocos:
+  - Bloco Geral: personagem (extraido da foto), ambiente (extraido da foto), arco emocional
+  - Bloco por Cena: expressao, gesto, tom de voz, energia
+- Output: direction.md
 
 ### Produtor
-- Para cada cena: monta JSON -> gera video -> humano aprova
-- Ajustes simples: resolve sozinho e reenvia
-- Chama: `python scripts/generate_video.py`
+- Monta JSONs VEO3 para todas as cenas (5 blocos: scene/camera/sequence/dialogue/lighting)
+- NAO gera videos via API
+- Output: scene-01.json ... scene-XX.json
 
 ### Copywriter
-- Legenda do post + ad copy para Meta Ads
-- Segue style guide de `knowledge/agents/util-copywriter/`
-
-## Scripts Python
-
-- `scripts/generate_image.py` — CLI para gerar imagens via API Gemini
-- `scripts/generate_video.py` — CLI para gerar videos via API Gemini (VEO3)
-- `scripts/utils/gemini_client.py` — Client reutilizavel
+- Legenda do post + ad copy para Meta Ads (3 variacoes)
+- Output: caption.md + ad-copy.md
